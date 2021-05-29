@@ -81,6 +81,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.UUID;
 import java.util.Map;
+import java.lang.NullPointerException;
 
 @SuppressLint("ViewConstructor")
 class ReactExoplayerView extends FrameLayout implements
@@ -975,24 +976,27 @@ class ReactExoplayerView extends FrameLayout implements
         Exception ex = e;
         if (e.type == ExoPlaybackException.TYPE_RENDERER) {
             Exception cause = e.getRendererException();
-            if (cause instanceof MediaCodecRenderer.DecoderInitializationException) {
-                // Special case for decoder initialization failures.
-                MediaCodecRenderer.DecoderInitializationException decoderInitializationException =
-                        (MediaCodecRenderer.DecoderInitializationException) cause;
-                if (decoderInitializationException.codecInfo.name == null) {
-                    if (decoderInitializationException.getCause() instanceof MediaCodecUtil.DecoderQueryException) {
-                        errorString = getResources().getString(R.string.error_querying_decoders);
-                    } else if (decoderInitializationException.secureDecoderRequired) {
-                        errorString = getResources().getString(R.string.error_no_secure_decoder,
-                                decoderInitializationException.mimeType);
+            try {
+                if (cause instanceof MediaCodecRenderer.DecoderInitializationException) {
+                    // Special case for decoder initialization failures.
+                    MediaCodecRenderer.DecoderInitializationException decoderInitializationException =
+                            (MediaCodecRenderer.DecoderInitializationException) cause;
+                    if (decoderInitializationException.codecInfo.name == null) {
+                        if (decoderInitializationException.getCause() instanceof MediaCodecUtil.DecoderQueryException) {
+                            errorString = getResources().getString(R.string.error_querying_decoders);
+                        } else if (decoderInitializationException.secureDecoderRequired) {
+                            errorString = getResources().getString(R.string.error_no_secure_decoder,
+                                    decoderInitializationException.mimeType);
+                        } else {
+                            errorString = getResources().getString(R.string.error_no_decoder,
+                                    decoderInitializationException.mimeType);
+                        }
                     } else {
-                        errorString = getResources().getString(R.string.error_no_decoder,
-                                decoderInitializationException.mimeType);
+                        errorString = getResources().getString(R.string.error_instantiating_decoder,
+                                decoderInitializationException.codecInfo.name);
                     }
-                } else {
-                    errorString = getResources().getString(R.string.error_instantiating_decoder,
-                            decoderInitializationException.codecInfo.name);
-                }
+                } 
+            } catch(NullPointerException nexc) {
             }
         }
         else if (e.type == ExoPlaybackException.TYPE_SOURCE) {
